@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Sales Report</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="Assets/fav.jpg" />
+
+  <!-- iOS Font -->
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="ios-card">
+
+    <div class="ios-header">
+      <img src="Assets/logo.webp" class="ios-logo" alt="Logo" />
+    </div>
+
+    <form id="reportForm" class="ios-form">
+
+     <!-- Date -->
+<div class="ios-group">
+  <label>Date</label>
+  <input type="text" id="autoDate" name="date" readonly />
+</div>
+
+      <!-- Name Dropdown -->
+      <div class="ios-group">
+        <label>Name</label>
+        <select name="name" required>
+          <option value="">Select Name</option>
+          <option>Abhi Raval</option>
+          <option>Chirag Rawat</option>
+          <option>Pavan Gelotar</option>
+          <option>Tarun Asari</option>
+          <option>Sachin Prajapati</option>
+          <option>Jitendra Gautam</option>
+          <option>Rakesh Mali</option>
+        </select>
+      </div>
+
+      <!-- Numeric Fields -->
+      <div class="ios-group-grid">
+
+        <div class="ios-group">
+          <label>Total Leads</label>
+          <input type="number" name="leads" min="0" required />
+        </div>
+
+        <div class="ios-group">
+          <label>Total Calls</label>
+          <input type="number" name="calls" min="0" required />
+        </div>
+
+        <div class="ios-group">
+          <label>Positive Calls</label>
+          <input type="number" name="positive" min="0" required />
+        </div>
+
+        <div class="ios-group">
+          <label>Visit Scheduled</label>
+          <input type="number" name="scheduled" min="0" required />
+        </div>
+
+        <div class="ios-group">
+          <label>Visits Done</label>
+          <input type="number" name="done" min="0" required />
+        </div>
+
+        <div class="ios-group">
+          <label>Tokens</label>
+          <input type="number" name="tokens" min="0" required />
+        </div>
+
+      </div>
+
+      <button type="submit" id="submitBtn" class="ios-button">
+        Submit Report
+      </button>
+
+      <div class="ios-loader" id="loader"></div>
+
+    </form>
+
+    <div class="ios-success" id="successMsg">
+      Submitted successfully
+    </div>
+
+  </div>
+
+  <!-- ===== Success Popup ===== -->
+<div id="sharePopup" class="popup-overlay">
+  <div class="popup-box">
+    <h3>Form Submitted</h3>
+    <p>Your report is ready to share.</p>
+
+    <button id="whatsappShare" class="ios-button">
+      Share on WhatsApp
+    </button>
+  </div>
+</div>
+
+
+  <script src="script.js"></script>
+</body>
+</html>
