@@ -52,12 +52,12 @@
       <div class="ios-group-grid">
 
         <div class="ios-group">
-          <label>Total Leads</label>
+          <label>Today Leads</label>
           <input type="number" name="leads" min="0" required />
         </div>
 
         <div class="ios-group">
-          <label>Total Calls</label>
+          <label>Today Calls</label>
           <input type="number" name="calls" min="0" required />
         </div>
 
@@ -67,12 +67,12 @@
         </div>
 
         <div class="ios-group">
-          <label>Visit Scheduled (Count)</label>
+          <label>Visit Scheduled Today</label>
           <input type="number" name="scheduled" min="0" required />
         </div>
 
         <div class="ios-group">
-          <label>Visits Done (Count)</label>
+          <label>Visits Done Today</label>
           <input type="number" name="done" min="0" required />
         </div>
 
@@ -88,22 +88,22 @@
       <div class="ios-group">
         <div class="visit-header">
           <label>Visits DONE Today</label>
-          <span id="addDoneVisit" class="add-link">+ Add more</span>
         </div>
 
         <div id="doneVisitsContainer"></div>
       </div>
 
 
+
       <!-- ===== Visits SCHEDULED ===== -->
       <div class="ios-group">
         <div class="visit-header">
           <label>Visits Scheduled</label>
-          <span id="addScheduledVisit" class="add-link">+ Add more</span>
         </div>
 
         <div id="scheduledVisitsContainer"></div>
       </div>
+
 
 
 
@@ -137,14 +137,9 @@
   <div id="summaryPopup" class="popup-overlay">
     <div class="popup-box" style="max-width:380px">
 
-      <h3>Performance Summary</h3>
+      <h3>Daily Report</h3>
 
       <div id="summaryTable"></div>
-
-      <button id="shareSummary" class="ios-button" style="margin-top:14px">
-        Share on WhatsApp
-      </button>
-
     </div>
   </div>
 
