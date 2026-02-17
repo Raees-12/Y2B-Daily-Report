@@ -7,14 +7,10 @@ const popup = document.getElementById("sharePopup");
 const whatsappBtn = document.getElementById("whatsappShare");
 const summaryPopup = document.getElementById("summaryPopup");
 const summaryTable = document.getElementById("summaryTable");
-const shareSummaryBtn = document.getElementById("shareSummary");
 
 
 const doneContainer = document.getElementById("doneVisitsContainer");
 const scheduledContainer = document.getElementById("scheduledVisitsContainer");
-
-const addDoneBtn = document.getElementById("addDoneVisit");
-const addScheduledBtn = document.getElementById("addScheduledVisit");
 
 
 // ================= AUTO DATE =================
@@ -102,15 +98,6 @@ function createScheduledRow() {
 
   scheduledContainer.appendChild(div);
 }
-
-
-
-// Initial one row each
-createDoneRow();
-createScheduledRow();
-
-addDoneBtn.onclick = createDoneRow;
-addScheduledBtn.onclick = createScheduledRow;
 
 
 // ================= SUBMIT =================
@@ -201,16 +188,6 @@ form.addEventListener("submit", async (e) => {
     stopLoading();   // ✅ CORRECT PLACE
 
 
-    /* ===== WhatsApp share from summary ===== */
-    shareSummaryBtn.onclick = () => {
-      const msg = createWhatsAppText(data, name);
-      window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
-
-      summaryPopup.style.display = "none";
-      form.reset();
-    };
-
-
     // ===== Format date =====
     const formattedDate = today.toLocaleDateString("en-GB", {
       weekday: "short",
@@ -263,8 +240,6 @@ ${schText}`;
       // Reset dynamic rows
       doneContainer.innerHTML = "";
       scheduledContainer.innerHTML = "";
-      createDoneRow();
-      createScheduledRow();
     };
 
   } catch (error) {
@@ -401,3 +376,54 @@ Bookings: ${data.today.tokens} (MTD ${data.mtd.tokens})
 Visit Conversion: ${data.today.siteVisitConversion}
 Closure Conversion: ${data.today.closureConversion}`;
 }
+
+// ===== AUTO CREATE DONE VISIT ROWS =====
+function renderDoneRows(count) {
+  doneContainer.innerHTML = "";
+
+  for (let i = 0; i < count; i++) {
+    const div = document.createElement("div");
+
+    div.innerHTML = `
+      <div class="visit-row">
+        <input type="text" placeholder="Client Name" class="doneName" required />
+        <input type="time" class="doneTime" required />
+      </div>
+    `;
+
+    doneContainer.appendChild(div);
+  }
+}
+
+
+// ===== AUTO CREATE SCHEDULED VISIT ROWS =====
+function renderScheduledRows(count) {
+  scheduledContainer.innerHTML = "";
+
+  for (let i = 0; i < count; i++) {
+    const div = document.createElement("div");
+
+    div.innerHTML = `
+      <div class="visit-row">
+        <input type="text" placeholder="Client Name" class="schName" required />
+        <input type="date" class="schDate" required />
+      </div>
+    `;
+
+    scheduledContainer.appendChild(div);
+  }
+}
+
+// ===== LISTEN TO COUNT INPUT CHANGES =====
+
+// Visits Done (Count)
+form.querySelector('[name="done"]').addEventListener("input", (e) => {
+  const count = Number(e.target.value) || 0;
+  renderDoneRows(count);
+});
+
+// Visit Scheduled (Count)
+form.querySelector('[name="scheduled"]').addEventListener("input", (e) => {
+  const count = Number(e.target.value) || 0;
+  renderScheduledRows(count);
+});
