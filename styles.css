@@ -1,206 +1,403 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+// ================= ELEMENTS =================
+const form = document.getElementById("reportForm");
+const successMsg = document.getElementById("successMsg");
+const loader = document.getElementById("loader");
+const btn = document.getElementById("submitBtn");
+const popup = document.getElementById("sharePopup");
+const whatsappBtn = document.getElementById("whatsappShare");
+const summaryPopup = document.getElementById("summaryPopup");
+const summaryTable = document.getElementById("summaryTable");
+const shareSummaryBtn = document.getElementById("shareSummary");
+
+
+const doneContainer = document.getElementById("doneVisitsContainer");
+const scheduledContainer = document.getElementById("scheduledVisitsContainer");
+
+const addDoneBtn = document.getElementById("addDoneVisit");
+const addScheduledBtn = document.getElementById("addScheduledVisit");
+
+
+// ================= AUTO DATE =================
+const dateInput = document.getElementById("autoDate");
+
+const today = new Date();
+
+dateInput.value = today.toLocaleDateString("en-GB", {
+  weekday: "short",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+
+// ================= APPS SCRIPT URL =================
+const scriptURL =
+  "https://script.google.com/macros/s/AKfycbyI-h3RLydGwyBIJdDLGs5JUnKP0M77W_DbofKz21kVUnLkLWvAqrFfiPm098kb58jKbQ/exec";
+
+
+// ================= LOADING HELPERS =================
+function startLoading() {
+  loader.style.display = "block";
+  btn.disabled = true;
+  btn.textContent = "Submitting...";
 }
 
-/* ===== Background ===== */
-body {
-  background: #f5f7fb; /* soft white-blue background */
-  min-height: 100vh;
-  padding: 0;
+function stopLoading() {
+  loader.style.display = "none";
+  btn.disabled = false;
+  btn.textContent = "Submit Report";
 }
 
-/* ===== Main Layout ===== */
-.ios-card {
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  background: #ffffff; /* pure white card */
-  border-radius: 0;
-  padding: 24px 18px 32px;
-}
 
-/* ===== Header ===== */
-.ios-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
+// ================= VALIDATION =================
+function validateNumbers(formData) {
+  const numericFields = ["leads", "calls", "positive", "scheduled", "done", "tokens"];
 
-.ios-logo {
-  width: 200px;
-  max-width: 85%;
-  margin: 8px auto 14px;
-  display: block;
-}
-
-.ios-header h1 {
-  font-size: 22px;
-  font-weight: 700;
-  color: #0f172a; /* deep navy text */
-  letter-spacing: -0.2px;
-}
-
-/* ===== Form Groups ===== */
-.ios-group {
-  margin-bottom: 14px;
-}
-
-.ios-group label {
-  display: block;
-  font-size: 12px;
-  color: #64748b; /* subtle grey text */
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-/* ===== Inputs & Select ===== */
-.ios-group input,
-.ios-group select {
-  width: 100%;
-  padding: 16px 14px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc; /* very light blue-white */
-  font-size: 16px;
-  color: #0f172a;
-  transition: all 0.18s ease;
-}
-
-/* Focus glow */
-.ios-group input:focus,
-.ios-group select:focus {
-  outline: none;
-  background: #ffffff;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-}
-
-/* Remove number arrows */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* ===== Date Picker Icon ===== */
-input[type="date"] {
-  position: relative;
-  appearance: none;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  position: absolute;
-  right: 12px;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.ios-group input[type="date"] {
-  background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='12' height='11' rx='2'/%3E%3Cline x1='3' y1='8' x2='15' y2='8'/%3E%3C/svg%3E") no-repeat right 14px center;
-  background-size: 18px;
-}
-
-/* ===== Grid Layout ===== */
-.ios-group-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-/* ===== Button ===== */
-.ios-button {
-  width: 100%;
-  margin-top: 26px;
-  padding: 18px;
-  border-radius: 22px;
-  border: none;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8); /* premium blue */
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
-  transition: all 0.15s ease;
-}
-
-.ios-button:active {
-  transform: scale(0.97);
-  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
-}
-
-.ios-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ===== Loader ===== */
-.ios-loader {
-  display: none;
-  margin: 14px auto 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 3px solid #e2e8f0;
-  border-top: 3px solid #2563eb;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  for (let field of numericFields) {
+    const value = Number(formData.get(field));
+    if (isNaN(value) || value < 0) {
+      alert("Please enter valid positive numbers in all fields.");
+      return false;
+    }
   }
+
+  return true;
 }
 
-/* ===== Success Message ===== */
-.ios-success {
-  display: none;
-  text-align: center;
-  margin-top: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #16a34a;
+
+// ================= DYNAMIC VISIT ROWS =================
+
+// Create DONE visit row
+function createDoneRow() {
+  const div = document.createElement("div");
+
+  div.innerHTML = `
+    <div class="visit-row">
+      <input type="text" placeholder="Client Name" class="doneName" />
+      <input type="time" class="doneTime" />
+    </div>
+    <div class="remove-link">Remove</div>
+  `;
+
+  div.querySelector(".remove-link").onclick = () => div.remove();
+
+  doneContainer.appendChild(div);
 }
 
-/* ===== Popup Overlay ===== */
-.popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
+
+
+// Create SCHEDULED visit row
+function createScheduledRow() {
+  const div = document.createElement("div");
+
+  div.innerHTML = `
+    <div class="visit-row">
+      <input type="text" placeholder="Client Name" class="schName" />
+      <input type="date" class="schDate" />
+    </div>
+    <div class="remove-link">Remove</div>
+  `;
+
+  div.querySelector(".remove-link").onclick = () => div.remove();
+
+  scheduledContainer.appendChild(div);
 }
 
-/* ===== Popup Box ===== */
-.popup-box {
-  width: 90%;
-  max-width: 320px;
-  background: #ffffff;
-  border-radius: 22px;
-  padding: 22px;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-  animation: popupIn 0.25s ease;
+
+
+// Initial one row each
+createDoneRow();
+createScheduledRow();
+
+addDoneBtn.onclick = createDoneRow;
+addScheduledBtn.onclick = createScheduledRow;
+
+
+// ================= SUBMIT =================
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  successMsg.style.display = "none";
+
+  const formData = new FormData(form);
+
+  if (!validateNumbers(formData)) return;
+
+  // ===== Collect DONE visits =====
+  const doneNames = [...document.querySelectorAll(".doneName")].map(i => i.value);
+  const doneTimes = [...document.querySelectorAll(".doneTime")].map(i => i.value);
+
+  formData.append("doneVisitNames", JSON.stringify(doneNames));
+  formData.append("doneVisitTimes", JSON.stringify(doneTimes));
+
+  // ===== Collect SCHEDULED visits =====
+  const schNames = [...document.querySelectorAll(".schName")].map(i => i.value);
+  const schDates = [...document.querySelectorAll(".schDate")].map(i => i.value);
+
+  formData.append("scheduledVisitNames", JSON.stringify(schNames));
+  formData.append("scheduledVisitDates", JSON.stringify(schDates));
+
+  startLoading();
+
+  try {
+    // ===== Build JSON payload =====
+    const payload = {
+      date: new Date().toISOString(),
+      name: formData.get("name"),
+      leads: formData.get("leads"),
+      calls: formData.get("calls"),
+      positive: formData.get("positive"),
+      scheduled: formData.get("scheduled"),
+      done: formData.get("done"),
+      tokens: formData.get("tokens"),
+
+      doneVisits: doneNames.map((n, i) => ({
+        site: n,
+        time: doneTimes[i]
+      })),
+
+      scheduledVisits: schNames.map((n, i) => ({
+        site: n,
+        date: schDates[i]
+      }))
+    };
+
+    // ===== Send correctly to Apps Script =====
+    const response = await fetch(scriptURL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify(payload))
+    });
+
+
+    if (!response.ok) throw new Error("Network response failed");
+
+    /* ===== Fetch summary from Apps Script ===== */
+    const name = formData.get("name");
+
+    const res = await fetch(scriptURL + "?name=" + encodeURIComponent(name));
+    const data = await res.json();
+
+    // ===== HANDLE GET ERROR SAFELY =====
+    if (data.status === "error") {
+      console.error("Summary load error:", data.message);
+
+      alert("Report saved successfully, but summary failed to load.");
+
+      form.reset();
+      stopLoading();
+      return; // stop further JS execution
+    }
+
+
+    /* ===== Build summary table ===== */
+    summaryTable.innerHTML = createSummaryHTML(data, name);
+
+    /* ===== Show summary popup ===== */
+    summaryPopup.style.display = "flex";
+
+    stopLoading();   // ✅ CORRECT PLACE
+
+
+    /* ===== WhatsApp share from summary ===== */
+    shareSummaryBtn.onclick = () => {
+      const msg = createWhatsAppText(data, name);
+      window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+
+      summaryPopup.style.display = "none";
+      form.reset();
+    };
+
+
+    // ===== Format date =====
+    const formattedDate = today.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    // ===== DONE visits text =====
+    let doneText = doneNames
+      .map((name, i) => name ? `• ${name} (${doneTimes[i] || "-"})` : "")
+      .filter(Boolean)
+      .join("\n");
+
+    if (!doneText) doneText = "-";
+
+    // ===== SCHEDULED visits text =====
+    let schText = schNames
+      .map((name, i) => name ? `• ${name} (${schDates[i] || "-"})` : "")
+      .filter(Boolean)
+      .join("\n");
+
+    if (!schText) schText = "-";
+
+    // ===== WhatsApp message =====
+    const reportText =
+      `*Daily Sales Report*
+*Date:* ${formattedDate}
+*Name:* ${formData.get("name")}
+
+*Leads:* ${formData.get("leads")}
+*Calls:* ${formData.get("calls")}
+*Positive:* ${formData.get("positive")}
+*Scheduled Count:* ${formData.get("scheduled")}
+*Done Count:* ${formData.get("done")}
+*Tokens:* ${formData.get("tokens")}
+
+*Visits Done*
+${doneText}
+
+*Visits Scheduled*
+${schText}`;
+
+    // ===== Share button =====
+    whatsappBtn.onclick = () => {
+      window.open("https://wa.me/?text=" + encodeURIComponent(reportText), "_blank");
+      popup.style.display = "none";
+      form.reset();
+
+      // Reset dynamic rows
+      doneContainer.innerHTML = "";
+      scheduledContainer.innerHTML = "";
+      createDoneRow();
+      createScheduledRow();
+    };
+
+  } catch (error) {
+    console.error("Submission Error:", error);
+    stopLoading();
+    alert("Submission failed. Please try again.");
+  }
+});
+
+function createSummaryHTML(data, name) {
+  const todayDate = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit"
+  });
+
+  // ===== helper to safely format TIME =====
+  function formatTime(t) {
+    if (!t) return "-";
+
+    const d = new Date(t);
+
+    if (!isNaN(d)) {
+      return d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+      });
+    }
+
+    return t; // already plain text
+  }
+
+
+  // ===== helper to safely format DATE =====
+  function formatDateSafe(v) {
+    if (!v) return "-";
+
+    // if already dd/MM/yyyy text → convert manually
+    if (typeof v === "string" && v.includes("/")) {
+      const [day, month, year] = v.split("/");
+      const d = new Date(`${year}-${month}-${day}`);
+      if (!isNaN(d)) {
+        return d.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit"
+        });
+      }
+      return v;
+    }
+
+    // normal Date / ISO string
+    const d = new Date(v);
+    if (isNaN(d)) return "-";
+
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "2-digit"
+    });
+  }
+
+
+  return `
+  <div style="font-weight:600; margin-bottom:10px;">
+    Name: ${name}
+  </div>
+
+
+    
+    <table class="summary-table">
+      <tr>
+        <th>Particulars</th>
+        <th>${todayDate}</th>
+        <th>MTD</th>
+      </tr>
+
+      ${row("Fresh Leads Received", data.today.leads, data.mtd.leads)}
+      ${row("Calls Made", data.today.calls, data.mtd.calls)}
+      ${row("Meaningful Conversations Done", data.today.positive, data.mtd.positive)}
+      ${row("Site Visit Scheduled for the month", data.today.scheduled, data.mtd.scheduled)}
+      ${row("Site Visit Done", data.today.done, data.mtd.done)}
+      ${row("Bookings", data.today.tokens, data.mtd.tokens)}
+      ${row("Site Visit Conversion %", data.today.siteVisitConversion, data.mtd.siteVisitConversion)}
+      ${row("Closure Conversion%", data.today.closureConversion, data.mtd.closureConversion)}
+    </table>
+
+    <div class="scheduled-details">
+      <strong>Today Done Visit</strong>
+      ${data.todayVisits && data.todayVisits.length
+      ? `<ul>
+              ${data.todayVisits
+        .map(v => `<li>${v.site} – ${formatTime(v.time)}</li>`)
+        .join("")}
+            </ul>`
+      : "<p>-</p>"
+    }
+
+      <strong>Site Visit Scheduled Details</strong>
+      ${data.scheduledDetails && data.scheduledDetails.length
+      ? `<ul>
+              ${data.scheduledDetails
+        .map(v => `<li>${v.site} – ${formatDateSafe(v.date)}</li>`)
+        .join("")}
+            </ul>`
+      : "<p>-</p>"
+    }
+    </div>
+  `;
 }
 
-@keyframes popupIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+
+
+
+function row(title, today, mtd) {
+  return `<tr>
+    <td>${title}</td>
+    <td>${today}</td>
+    <td>${mtd}</td>
+  </tr>`;
 }
 
-.popup-box h3 {
-  font-size: 18px;
-  margin-bottom: 6px;
-  color: #0f172a;
-}
+function createWhatsAppText(data, name) {
+  return `*Performance Summary*
+*Name:* ${name}
 
-.popup-box p {
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 16px;
+Leads: ${data.today.leads} (MTD ${data.mtd.leads})
+Calls: ${data.today.calls} (MTD ${data.mtd.calls})
+Positive: ${data.today.positive} (MTD ${data.mtd.positive})
+Visits Done: ${data.today.done} (MTD ${data.mtd.done})
+Bookings: ${data.today.tokens} (MTD ${data.mtd.tokens})
+
+Visit Conversion: ${data.today.siteVisitConversion}
+Closure Conversion: ${data.today.closureConversion}`;
 }
