@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,10 +10,12 @@
   <link rel="icon" type="image/jpeg" href="Assets/fav.jpg" />
 
   <!-- iOS Font -->
-  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
 
   <div class="ios-card">
@@ -23,11 +26,11 @@
 
     <form id="reportForm" class="ios-form">
 
-     <!-- Date -->
-<div class="ios-group">
-  <label>Date</label>
-  <input type="text" id="autoDate" name="date" readonly />
-</div>
+      <!-- Date -->
+      <div class="ios-group">
+        <label>Date</label>
+        <input type="text" id="autoDate" name="date" readonly />
+      </div>
 
       <!-- Name Dropdown -->
       <div class="ios-group">
@@ -41,6 +44,7 @@
           <option>Sachin Prajapati</option>
           <option>Jitendra Gautam</option>
           <option>Rakesh Mali</option>
+          <option>Richa Patel</option>
         </select>
       </div>
 
@@ -63,12 +67,12 @@
         </div>
 
         <div class="ios-group">
-          <label>Visit Scheduled</label>
+          <label>Visit Scheduled (Count)</label>
           <input type="number" name="scheduled" min="0" required />
         </div>
 
         <div class="ios-group">
-          <label>Visits Done</label>
+          <label>Visits Done (Count)</label>
           <input type="number" name="done" min="0" required />
         </div>
 
@@ -78,6 +82,30 @@
         </div>
 
       </div>
+
+
+      <!-- ===== Visits DONE ===== -->
+      <div class="ios-group">
+        <div class="visit-header">
+          <label>Visits DONE Today</label>
+          <span id="addDoneVisit" class="add-link">+ Add more</span>
+        </div>
+
+        <div id="doneVisitsContainer"></div>
+      </div>
+
+
+      <!-- ===== Visits SCHEDULED ===== -->
+      <div class="ios-group">
+        <div class="visit-header">
+          <label>Visits Scheduled</label>
+          <span id="addScheduledVisit" class="add-link">+ Add more</span>
+        </div>
+
+        <div id="scheduledVisitsContainer"></div>
+      </div>
+
+
 
       <button type="submit" id="submitBtn" class="ios-button">
         Submit Report
@@ -94,18 +122,35 @@
   </div>
 
   <!-- ===== Success Popup ===== -->
-<div id="sharePopup" class="popup-overlay">
-  <div class="popup-box">
-    <h3>Form Submitted</h3>
-    <p>Your report is ready to share.</p>
+  <div id="sharePopup" class="popup-overlay">
+    <div class="popup-box">
+      <h3>Form Submitted</h3>
+      <p>Your report is ready to share.</p>
 
-    <button id="whatsappShare" class="ios-button">
-      Share on WhatsApp
-    </button>
+      <button id="whatsappShare" class="ios-button">
+        Share on WhatsApp
+      </button>
+    </div>
   </div>
-</div>
+
+  <!-- ===== Summary Popup ===== -->
+  <div id="summaryPopup" class="popup-overlay">
+    <div class="popup-box" style="max-width:380px">
+
+      <h3>Performance Summary</h3>
+
+      <div id="summaryTable"></div>
+
+      <button id="shareSummary" class="ios-button" style="margin-top:14px">
+        Share on WhatsApp
+      </button>
+
+    </div>
+  </div>
+
 
 
   <script src="script.js"></script>
 </body>
+
 </html>
