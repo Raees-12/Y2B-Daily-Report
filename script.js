@@ -179,6 +179,8 @@ form.addEventListener("submit", async (e) => {
       positive: formData.get("positive"),
       scheduled: formData.get("scheduled"),
       tokens: formData.get("tokens"),
+      done: visitUpdates.filter(v => v.type === "done").length,
+
 
       scheduledVisits: schNames.map((n, i) => ({
         site: n,
