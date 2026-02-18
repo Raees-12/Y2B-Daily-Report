@@ -71,34 +71,27 @@
           <input type="number" name="scheduled" min="0" required />
         </div>
 
-        <div class="ios-group">
-          <label>Visits Done Today</label>
-          <input type="number" name="done" min="0" required />
-        </div>
-
-        <div class="ios-group">
+        <div class="ios-group" style="grid-column: span 2;">
           <label>Tokens</label>
           <input type="number" name="tokens" min="0" required />
         </div>
 
+
       </div>
 
-
-      <!-- ===== Visits DONE ===== -->
+      <!-- ===== TODAY VISITS ACTION ===== -->
       <div class="ios-group">
         <div class="visit-header">
-          <label>Visits DONE Today</label>
+          <label>Today's Visits Action</label>
         </div>
 
-        <div id="doneVisitsContainer"></div>
+        <div id="todayVisitsContainer"></div>
       </div>
-
-
 
       <!-- ===== Visits SCHEDULED ===== -->
       <div class="ios-group">
         <div class="visit-header">
-          <label>Visits Scheduled</label>
+          <label>Today's Scheduled Visits</label>
         </div>
 
         <div id="scheduledVisitsContainer"></div>
