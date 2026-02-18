@@ -9,8 +9,13 @@ const summaryPopup = document.getElementById("summaryPopup");
 const summaryTable = document.getElementById("summaryTable");
 
 
-const doneContainer = document.getElementById("doneVisitsContainer");
-const scheduledContainer = document.getElementById("scheduledVisitsContainer");
+const manualScheduledContainer = document.getElementById("scheduledVisitsContainer");
+const todayActionContainer =
+  document.getElementById("todayVisitsContainer") || {
+    innerHTML: "",
+    appendChild: () => { }
+  };
+
 
 
 // ================= AUTO DATE =================
@@ -30,6 +35,44 @@ dateInput.value = today.toLocaleDateString("en-GB", {
 const scriptURL =
   "https://script.google.com/macros/s/AKfycbyI-h3RLydGwyBIJdDLGs5JUnKP0M77W_DbofKz21kVUnLkLWvAqrFfiPm098kb58jKbQ/exec";
 
+const nameSelect = form.querySelector('[name="name"]');
+
+nameSelect.addEventListener("change", async () => {
+  const name = nameSelect.value;
+
+  todayVisitActions = [];   // ⭐ RESET STORED ACTIONS
+  todayActionContainer.innerHTML = "Loading...";
+  manualScheduledContainer.innerHTML = "";
+  form.querySelector('[name="scheduled"]').value = "";
+
+
+  if (!name) {
+    todayActionContainer.innerHTML = "";
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${scriptURL}?action=todayVisits&name=${encodeURIComponent(name)}`
+    );
+    const data = await res.json();
+
+    if (!data.visits || !data.visits.length) {
+      todayActionContainer.innerHTML =
+        "<p style='font-size:13px;color:#64748b'>No visits today</p>";
+      return;
+    }
+
+    todayActionContainer.innerHTML = "";
+    data.visits.forEach(v => renderVisitRow(v, name));
+
+  } catch (err) {
+    console.error("Today visits fetch error:", err);
+    todayActionContainer.innerHTML =
+      "<p style='font-size:13px;color:red'>Failed to load visits</p>";
+  }
+});
+
 
 // ================= LOADING HELPERS =================
 function startLoading() {
@@ -47,7 +90,7 @@ function stopLoading() {
 
 // ================= VALIDATION =================
 function validateNumbers(formData) {
-  const numericFields = ["leads", "calls", "positive", "scheduled", "done", "tokens"];
+  const numericFields = ["leads", "calls", "positive", "scheduled", "tokens"];
 
   for (let field of numericFields) {
     const value = Number(formData.get(field));
@@ -61,43 +104,6 @@ function validateNumbers(formData) {
 }
 
 
-// ================= DYNAMIC VISIT ROWS =================
-
-// Create DONE visit row
-function createDoneRow() {
-  const div = document.createElement("div");
-
-  div.innerHTML = `
-    <div class="visit-row">
-      <input type="text" placeholder="Client Name" class="doneName" />
-      <input type="time" class="doneTime" />
-    </div>
-    <div class="remove-link">Remove</div>
-  `;
-
-  div.querySelector(".remove-link").onclick = () => div.remove();
-
-  doneContainer.appendChild(div);
-}
-
-
-
-// Create SCHEDULED visit row
-function createScheduledRow() {
-  const div = document.createElement("div");
-
-  div.innerHTML = `
-    <div class="visit-row">
-      <input type="text" placeholder="Client Name" class="schName" />
-      <input type="date" class="schDate" />
-    </div>
-    <div class="remove-link">Remove</div>
-  `;
-
-  div.querySelector(".remove-link").onclick = () => div.remove();
-
-  scheduledContainer.appendChild(div);
-}
 
 
 // ================= SUBMIT =================
@@ -110,21 +116,58 @@ form.addEventListener("submit", async (e) => {
 
   if (!validateNumbers(formData)) return;
 
-  // ===== Collect DONE visits =====
-  const doneNames = [...document.querySelectorAll(".doneName")].map(i => i.value);
-  const doneTimes = [...document.querySelectorAll(".doneTime")].map(i => i.value);
-
-  formData.append("doneVisitNames", JSON.stringify(doneNames));
-  formData.append("doneVisitTimes", JSON.stringify(doneTimes));
-
-  // ===== Collect SCHEDULED visits =====
+  // ===== Collect SCHEDULED visits (manual inputs) =====
   const schNames = [...document.querySelectorAll(".schName")].map(i => i.value);
   const schDates = [...document.querySelectorAll(".schDate")].map(i => i.value);
 
-  formData.append("scheduledVisitNames", JSON.stringify(schNames));
-  formData.append("scheduledVisitDates", JSON.stringify(schDates));
-
   startLoading();
+
+  // ===== Collect today's visit actions =====
+  const visitUpdates = todayVisitActions.map(v => {
+    const type = v.div.querySelector(".visitAction")?.value;
+    if (!type) return null;
+
+    let obj = {
+      row: v.visit.row,
+      site: v.visit.site,
+      name: v.name,
+      type
+    };
+
+    if (type === "done") {
+      obj.time = v.div.querySelector(".timeInput")?.value || "";
+    }
+
+    if (type === "reschedule") {
+      obj.newDate = v.div.querySelector(".dateInput")?.value || "";
+    }
+
+    if (type === "cancel") {
+      obj.reason = v.div.querySelector(".reasonInput")?.value || "";
+    }
+
+    return obj;
+  }).filter(Boolean);
+
+  for (let v of visitUpdates) {
+    if (v.type === "done" && !v.time) {
+      alert(`Enter time for ${v.site}`);
+      stopLoading();
+      return;
+    }
+
+    if (v.type === "reschedule" && !v.newDate) {
+      alert(`Select new date for ${v.site}`);
+      stopLoading();
+      return;
+    }
+
+    if (v.type === "cancel" && !v.reason) {
+      alert(`Enter cancel reason for ${v.site}`);
+      stopLoading();
+      return;
+    }
+  }
 
   try {
     // ===== Build JSON payload =====
@@ -135,19 +178,22 @@ form.addEventListener("submit", async (e) => {
       calls: formData.get("calls"),
       positive: formData.get("positive"),
       scheduled: formData.get("scheduled"),
-      done: formData.get("done"),
       tokens: formData.get("tokens"),
-
-      doneVisits: doneNames.map((n, i) => ({
-        site: n,
-        time: doneTimes[i]
-      })),
 
       scheduledVisits: schNames.map((n, i) => ({
         site: n,
         date: schDates[i]
-      }))
+      })),
+
+      visitUpdates   // ⭐ NEW
     };
+
+
+
+
+
+
+
 
     // ===== Send correctly to Apps Script =====
     const response = await fetch(scriptURL, {
@@ -196,21 +242,13 @@ form.addEventListener("submit", async (e) => {
       year: "numeric",
     });
 
-    // ===== DONE visits text =====
-    let doneText = doneNames
-      .map((name, i) => name ? `• ${name} (${doneTimes[i] || "-"})` : "")
-      .filter(Boolean)
-      .join("\n");
+    let doneText = data.todayVisits?.length
+      ? data.todayVisits.map(v => `• ${v.site} (${v.time || "-"})`).join("\n")
+      : "-";
 
-    if (!doneText) doneText = "-";
-
-    // ===== SCHEDULED visits text =====
-    let schText = schNames
-      .map((name, i) => name ? `• ${name} (${schDates[i] || "-"})` : "")
-      .filter(Boolean)
-      .join("\n");
-
-    if (!schText) schText = "-";
+    let schText = data.scheduledDetails?.length
+      ? data.scheduledDetails.map(v => `• ${v.site}`).join("\n")
+      : "-";
 
     // ===== WhatsApp message =====
     const reportText =
@@ -222,7 +260,7 @@ form.addEventListener("submit", async (e) => {
 *Calls:* ${formData.get("calls")}
 *Positive:* ${formData.get("positive")}
 *Scheduled Count:* ${formData.get("scheduled")}
-*Done Count:* ${formData.get("done")}
+*Done Count:* ${visitUpdates.filter(v => v.type === "done").length}
 *Tokens:* ${formData.get("tokens")}
 
 *Visits Done*
@@ -238,8 +276,8 @@ ${schText}`;
       form.reset();
 
       // Reset dynamic rows
-      doneContainer.innerHTML = "";
-      scheduledContainer.innerHTML = "";
+      todayActionContainer.innerHTML = "";
+      manualScheduledContainer.innerHTML = "";
     };
 
   } catch (error) {
@@ -377,28 +415,17 @@ Visit Conversion: ${data.today.siteVisitConversion}
 Closure Conversion: ${data.today.closureConversion}`;
 }
 
-// ===== AUTO CREATE DONE VISIT ROWS =====
-function renderDoneRows(count) {
-  doneContainer.innerHTML = "";
 
-  for (let i = 0; i < count; i++) {
-    const div = document.createElement("div");
+// ===== LISTEN TO COUNT INPUT CHANGES =====
 
-    div.innerHTML = `
-      <div class="visit-row">
-        <input type="text" placeholder="Client Name" class="doneName" required />
-        <input type="time" class="doneTime" required />
-      </div>
-    `;
+// Visit Scheduled (Count)
+form.querySelector('[name="scheduled"]').addEventListener("input", (e) => {
+  const count = Number(e.target.value) || 0;
+  renderScheduledRows(count);
+});
 
-    doneContainer.appendChild(div);
-  }
-}
-
-
-// ===== AUTO CREATE SCHEDULED VISIT ROWS =====
 function renderScheduledRows(count) {
-  scheduledContainer.innerHTML = "";
+  manualScheduledContainer.innerHTML = "";
 
   for (let i = 0; i < count; i++) {
     const div = document.createElement("div");
@@ -410,20 +437,53 @@ function renderScheduledRows(count) {
       </div>
     `;
 
-    scheduledContainer.appendChild(div);
+    manualScheduledContainer.appendChild(div);
   }
 }
 
-// ===== LISTEN TO COUNT INPUT CHANGES =====
+// ===== STORE TODAY VISIT ACTIONS =====
+let todayVisitActions = [];
 
-// Visits Done (Count)
-form.querySelector('[name="done"]').addEventListener("input", (e) => {
-  const count = Number(e.target.value) || 0;
-  renderDoneRows(count);
-});
 
-// Visit Scheduled (Count)
-form.querySelector('[name="scheduled"]').addEventListener("input", (e) => {
-  const count = Number(e.target.value) || 0;
-  renderScheduledRows(count);
-});
+function renderVisitRow(visit, name) {
+  const div = document.createElement("div");
+
+  div.innerHTML = `
+    <div style="margin-bottom:10px;font-weight:600">${visit.site}</div>
+
+    <select class="visitAction ios-input">
+      <option value="">Select Action</option>
+      <option value="done">Done</option>
+      <option value="reschedule">Reschedule</option>
+      <option value="cancel">Cancel</option>
+    </select>
+
+    <div class="actionInput" style="margin-top:8px"></div>
+
+    <hr style="margin:14px 0;border:none;border-top:1px solid #e2e8f0">
+  `;
+
+  const actionSelect = div.querySelector(".visitAction");
+  const inputBox = div.querySelector(".actionInput");
+
+  // Change input based on action
+  actionSelect.addEventListener("change", () => {
+    const val = actionSelect.value;
+
+    if (val === "done") {
+      inputBox.innerHTML = `<input type="time" class="timeInput" required>`;
+    } else if (val === "reschedule") {
+      inputBox.innerHTML = `<input type="date" class="dateInput" required>`;
+    } else if (val === "cancel") {
+      inputBox.innerHTML =
+        `<input type="text" class="reasonInput" placeholder="Reason to cancel" required>`;
+    } else {
+      inputBox.innerHTML = "";
+    }
+  });
+
+
+  todayActionContainer.appendChild(div);
+  todayVisitActions.push({ div, visit, name });
+
+}
