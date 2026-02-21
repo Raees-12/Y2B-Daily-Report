@@ -306,3 +306,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .summary-table th:nth-child(2) {
   white-space: nowrap;
 }
+
+.schName:disabled,
+.schDate:disabled {
+  background-color: #f1f5f9;
+  opacity: 0.8;
+}
+
+/* ===== Future Visit Row Spacing ===== */
+.future-row {
+  gap: 18px;              /* more horizontal space */
+  margin-top: 10px;       /* space above first row */
+  margin-bottom: 12px;    /* space below each row */
+}
+
