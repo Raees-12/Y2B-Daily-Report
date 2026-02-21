@@ -7,14 +7,98 @@ const popup = document.getElementById("sharePopup");
 const whatsappBtn = document.getElementById("whatsappShare");
 const summaryPopup = document.getElementById("summaryPopup");
 const summaryTable = document.getElementById("summaryTable");
-
-
 const manualScheduledContainer = document.getElementById("scheduledVisitsContainer");
+const visitScheduledCount = document.getElementById("visitScheduledCount");
+const futureVisitDoneCount = document.getElementById("futureVisitDoneCount");
+const futureVisitDoneContainer = document.getElementById("futureVisitDoneContainer");
+
+let futureVisitsData = [];       // all future visits from backend
+let futureVisitSelections = [];  // selected dropdown rows
+
+
+let scheduledLocked = false;
 const todayActionContainer =
   document.getElementById("todayVisitsContainer") || {
     innerHTML: "",
     appendChild: () => { }
   };
+
+// ===== OPEN SCHEDULE ROWS + SAVE BUTTON =====
+visitScheduledCount.addEventListener("input", (e) => {
+
+  const count = Number(e.target.value) || 0;
+  manualScheduledContainer.innerHTML = "";
+
+  if (!count) return;
+
+  for (let i = 0; i < count; i++) {
+
+    const div = document.createElement("div");
+    div.className = "visit-row future-row";
+
+    const minDate = getTodayDate();
+
+    div.innerHTML = `
+  <input type="text" placeholder="Client Name" class="schName" required />
+  <input type="date" class="schDate" min="${minDate}" required />
+`;
+
+    manualScheduledContainer.appendChild(div);
+  }
+
+  // Add Save Button
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "ios-button";
+  saveBtn.textContent = "Save Scheduled Visits";
+  saveBtn.style.marginTop = "12px";
+
+  manualScheduledContainer.appendChild(saveBtn);
+
+  saveBtn.addEventListener("click", saveScheduledVisits);
+
+});
+
+futureVisitDoneCount.addEventListener("input", async (e) => {
+
+  const count = Number(e.target.value) || 0;
+  futureVisitDoneContainer.innerHTML = "";
+  futureVisitSelections = [];
+
+  if (!count) return;
+
+  const name = form.querySelector('[name="name"]').value;
+  if (!name) {
+    alert("Select employee name first");
+    futureVisitDoneCount.value = "";
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${scriptURL}?action=futureVisits&name=${encodeURIComponent(name)}`
+    );
+
+    const data = await res.json();
+
+    if (!data.visits || !data.visits.length) {
+      futureVisitDoneContainer.innerHTML =
+        "<p style='font-size:13px;color:#64748b'>No future visits available</p>";
+      return;
+    }
+
+    futureVisitsData = data.visits; // must be sorted from backend
+
+    for (let i = 0; i < count; i++) {
+      renderFutureVisitRow();
+    }
+
+  } catch (err) {
+    console.error("Future visit fetch error:", err);
+    alert("Failed to load future visits");
+  }
+
+});
 
 
 
@@ -42,8 +126,10 @@ nameSelect.addEventListener("change", async () => {
 
   todayVisitActions = [];   // ⭐ RESET STORED ACTIONS
   todayActionContainer.innerHTML = "Loading...";
-  manualScheduledContainer.innerHTML = "";
-  form.querySelector('[name="scheduled"]').value = "";
+  if (!scheduledLocked) {
+    manualScheduledContainer.innerHTML = "";
+    visitScheduledCount.value = "";
+  }
 
 
   if (!name) {
@@ -103,11 +189,24 @@ function validateNumbers(formData) {
   return true;
 }
 
+function formatFutureDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "2-digit"
+  });
+}
 
 
 
 // ================= SUBMIT =================
 form.addEventListener("submit", async (e) => {
+
+  if (!form.checkValidity()) {
+    return; // Let browser show native validation
+  }
+
   e.preventDefault();
 
   successMsg.style.display = "none";
@@ -169,6 +268,13 @@ form.addEventListener("submit", async (e) => {
     }
   }
 
+  // ===== Collect future visit done (native validation already handles required) =====
+  const futureDoneVisits = futureVisitSelections.map(v => ({
+    row: v.select.value,
+    time: v.timeInput.value
+  }));
+
+
   try {
     // ===== Build JSON payload =====
     const payload = {
@@ -179,22 +285,12 @@ form.addEventListener("submit", async (e) => {
       positive: formData.get("positive"),
       scheduled: formData.get("scheduled"),
       tokens: formData.get("tokens"),
-      done: visitUpdates.filter(v => v.type === "done").length,
+      done: visitUpdates.filter(v => v.type === "done").length
+        + futureDoneVisits.length,
 
-
-      scheduledVisits: schNames.map((n, i) => ({
-        site: n,
-        date: schDates[i]
-      })),
-
-      visitUpdates   // ⭐ NEW
+      visitUpdates,
+      futureDoneVisits
     };
-
-
-
-
-
-
 
 
     // ===== Send correctly to Apps Script =====
@@ -369,7 +465,7 @@ function createSummaryHTML(data, name) {
     </table>
 
     <div class="scheduled-details">
-      <strong>Today Done Visit</strong>
+      <strong>Today's Visit Done</strong>
       ${data.todayVisits && data.todayVisits.length
       ? `<ul>
               ${data.todayVisits
@@ -417,30 +513,93 @@ Visit Conversion: ${data.today.siteVisitConversion}
 Closure Conversion: ${data.today.closureConversion}`;
 }
 
+async function saveScheduledVisits() {
 
-// ===== LISTEN TO COUNT INPUT CHANGES =====
+  const name = form.querySelector('[name="name"]').value;
 
-// Visit Scheduled (Count)
-form.querySelector('[name="scheduled"]').addEventListener("input", (e) => {
-  const count = Number(e.target.value) || 0;
-  renderScheduledRows(count);
-});
-
-function renderScheduledRows(count) {
-  manualScheduledContainer.innerHTML = "";
-
-  for (let i = 0; i < count; i++) {
-    const div = document.createElement("div");
-
-    div.innerHTML = `
-      <div class="visit-row">
-        <input type="text" placeholder="Client Name" class="schName" required />
-        <input type="date" class="schDate" required />
-      </div>
-    `;
-
-    manualScheduledContainer.appendChild(div);
+  if (!name) {
+    alert("Select employee name first");
+    return;
   }
+
+  const schNames = [...document.querySelectorAll(".schName")];
+  const schDates = [...document.querySelectorAll(".schDate")];
+
+  const visits = schNames.map((input, i) => ({
+    client: input.value.trim(),
+    date: schDates[i].value
+  }));
+
+  if (visits.some(v => !v.client || !v.date)) {
+    alert("Fill all scheduled visit fields");
+    return;
+  }
+
+  try {
+
+    const saveBtn = manualScheduledContainer.querySelector(".ios-button");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    await fetch(scriptURL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body:
+        "action=addScheduledVisits&data=" +
+        encodeURIComponent(JSON.stringify({ name, visits }))
+    });
+
+    saveBtn.textContent = "Saved ✓";
+    saveBtn.style.background = "#16a34a";
+
+    // 🔒 Make count readOnly (not disabled)
+    visitScheduledCount.readOnly = true;
+
+    // 🔒 Make all scheduled fields readOnly
+    document.querySelectorAll(".schName, .schDate").forEach(input => {
+      input.readOnly = true;
+    });
+
+    // 🔒 Disable save button (but keep visible if you want)
+    saveBtn.disabled = true;
+
+    // Mark locked
+    scheduledLocked = true;
+    // 🔥 REFRESH TODAY VISITS
+    nameSelect.dispatchEvent(new Event("change"));
+
+  } catch (err) {
+    alert("Failed to save scheduled visits");
+  }
+}
+
+function getTomorrowDate() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+  const day = String(tomorrow.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`; // YYYY-MM-DD format
+}
+
+function getCurrentTimeHHMM() {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function getTodayDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`; // YYYY-MM-DD
 }
 
 // ===== STORE TODAY VISIT ACTIONS =====
@@ -453,7 +612,7 @@ function renderVisitRow(visit, name) {
   div.innerHTML = `
     <div style="margin-bottom:10px;font-weight:600">${visit.site}</div>
 
-    <select class="visitAction ios-input">
+    <select class="visitAction ios-input" required>
       <option value="">Select Action</option>
       <option value="done">Done</option>
       <option value="reschedule">Reschedule</option>
@@ -473,9 +632,23 @@ function renderVisitRow(visit, name) {
     const val = actionSelect.value;
 
     if (val === "done") {
-      inputBox.innerHTML = `<input type="time" class="timeInput" required>`;
+      const maxTime = getCurrentTimeHHMM();
+      inputBox.innerHTML = `
+    <input 
+      type="time" 
+      class="timeInput" 
+      max="${maxTime}" 
+      required>
+  `;
     } else if (val === "reschedule") {
-      inputBox.innerHTML = `<input type="date" class="dateInput" required>`;
+      const minDate = getTomorrowDate();
+      inputBox.innerHTML = `
+    <input 
+      type="date" 
+      class="dateInput" 
+      min="${minDate}" 
+      required>
+  `;
     } else if (val === "cancel") {
       inputBox.innerHTML =
         `<input type="text" class="reasonInput" placeholder="Reason to cancel" required>`;
@@ -488,4 +661,58 @@ function renderVisitRow(visit, name) {
   todayActionContainer.appendChild(div);
   todayVisitActions.push({ div, visit, name });
 
+}
+
+function renderFutureVisitRow() {
+
+  const div = document.createElement("div");
+  div.className = "visit-row future-row";
+
+  const select = document.createElement("select");
+  select.className = "futureVisitSelect";
+  select.required = true;   // ✅ REQUIRED
+  select.innerHTML = `<option value="" disabled selected>Select Visit</option>`;
+
+  futureVisitsData.forEach(v => {
+    const option = document.createElement("option");
+    option.value = v.row;
+    option.textContent = `${v.client} - ${formatFutureDate(v.date)}`;
+    select.appendChild(option);
+  });
+
+  const timeInput = document.createElement("input");
+  timeInput.type = "time";
+  timeInput.className = "futureVisitTime";
+  timeInput.required = true;  // ✅ REQUIRED
+  timeInput.max = getCurrentTimeHHMM();
+
+  div.appendChild(select);
+  div.appendChild(timeInput);
+
+  futureVisitDoneContainer.appendChild(div);
+
+  futureVisitSelections.push({ select, timeInput });
+
+  select.addEventListener("change", updateFutureDropdowns);
+}
+
+function updateFutureDropdowns() {
+
+  const selectedValues = futureVisitSelections
+    .map(v => v.select.value)
+    .filter(v => v);
+
+  futureVisitSelections.forEach(v => {
+
+    [...v.select.options].forEach(option => {
+
+      if (!option.value) return;
+
+      option.disabled =
+        selectedValues.includes(option.value) &&
+        option.value !== v.select.value;
+
+    });
+
+  });
 }
